@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Andhra Travelloop</title>
+
+<style>
+body{
+  margin:0;
+  font-family: Arial;
+  background:url("ap.jpg") no-repeat center center/cover;
+  color:white;
+  text-align:center;
+}
+
+.container{
+  background:rgba(0,0,0,0.7);
+  min-height:100vh;
+  padding:20px;
+}
+
+select,button{
+  padding:10px;
+  margin:10px;
+  border-radius:8px;
+  border:none;
+  font-size:16px;
+}
+
+button{background:#ffb703;cursor:pointer;}
+button:hover{background:#fb8500;}
+
+img{
+  width:90%;
+  max-width:450px;
+  height:300px;
+  object-fit:cover;
+  border-radius:15px;
+  margin-top:10px;
+}
+
+iframe{
+  width:90%;
+  height:300px;
+  margin-top:15px;
+  border-radius:15px;
+}
+
+#info,#planResult,#hotelBox,#chatbotBox{
+  background:rgba(255,255,255,0.1);
+  padding:15px;
+  border-radius:10px;
+  margin-top:15px;
+}
+
+#chatOutput{
+  height:150px;
+  overflow-y:auto;
+  text-align:left;
+  padding:10px;
+  border-radius:10px;
+  background:rgba(255,255,255,0.2);
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN PAGE -->
+<div id="loginBox">
+  <h2>🔐 Login</h2>
+  <input id="loginEmail" type="email" placeholder="Enter Email"><br>
+  <input id="loginPass" type="password" placeholder="Enter Password"><br>
+  <button onclick="loginUser()">Login</button>
+  <button onclick="openRegister()">Create Account</button>
+</div>
+
+<!-- REGISTER PAGE -->
+<div id="registerBox">
+  <h2>📝 Register</h2>
+  <input id="regEmail" type="email" placeholder="Enter Email"><br>
+  <input id="regPass" type="password" placeholder="Create Password"><br>
+  <button onclick="registerUser()">Register</button>
+  <button onclick="openLogin()">Back to Login</button>
+</div>
+
+
+<div class="container" id="app" style="display:none;">
+
+<h1>🌍 Andhra Pradesh Travelloop </h1>
+
+<select id="citySelect" onchange="showDetails()">
+<option value="">-- Select Place --</option>
+<option>Tirupati</option>
+<option>Vijayawada</option>
+<option>Visakhapatnam</option>
+<option>Araku</option>
+<option>Guntur</option>
+<option>Kurnool</option>
+<option>Rajahmundry</option>
+<option>Srikakulam</option>
+<option>Nellore</option>
+<option>Kadapa</option>
+<option>Anantapur</option>
+<option>Amaravati</option>
+<option>Lepakshi</option>
+<option>Belum Caves</option>
+<option>Srisailam</option>
+<option>Papikondalu</option>
+<option>Borra Caves</option>
+<option>Machilipatnam</option>
+<option>Kakinada</option>
+<option>Chittoor</option>
+<option>Vizianagaram</option>
+<option>Bapatla</option>
+<option>Ahobilam</option>
+<option>Gandikota</option>
+<option>Pulicat</option>
+<option>Bhadrachalam</option>
+</select>
+
+<img id="placeImage" src="default.jpg">
+
+<iframe id="map" src=""></iframe>
+
+<div>
+<button onclick="speakInfo('en')">🔊 English</button>
+<button onclick="speakInfo('te')">🔊 తెలుగు</button>
+<button onclick="stopVoice()" style="background:red;color:white;">⛔ Stop</button>
+</div>
+
+<div id="info"></div>
+
+<!-- ⭐ HOTEL RECOMMENDATIONS -->
+<div id="hotelBox"></div>
+
+<h2>Trip Plan</h2>
+<button onclick="showPlan(1)">1 Day</button>
+<button onclick="showPlan(2)">2 Days</button>
+<button onclick="showPlan(3)">3 Days</button>
+
+<div id="planResult"></div>
+<script>
+
+/* -------------------------------
+   HOTEL RECOMMENDATIONS FOR ALL PLACES
+-------------------------------- */
+const hotels = {
+"Tirupati":["Taj Tirupati","Minerva Grand","Budget Stay Lodge"],
+"Vijayawada":["Novotel","The Gateway Hotel","Treebo Trend"],
+"Visakhapatnam":["Novotel Beach","Daspalla","Hotel Rockdale"],
+"Araku":["Haritha Resort","Nature Valley Resort","Tribal Stay"],
+"Guntur":["Hotel V Royal Park","Nakshatra Hotel","International Hotel"],
+"Kurnool":["Hotel Rajavihar","Iroomz","Mourya Inn"],
+"Rajahmundry":["Anand Regency","Jetty Residency","Shelton Hotel"],
+"Srikakulam":["Geetha Residency","Haritha Hotel","Village Eco Stay"],
+"Nellore":["Hotel Yesh Park","Minerva Grand","Haritha"],
+"Kadapa":["Haritha Kadapa","Srinivasa Residency","Blue Diamond"],
+"Anantapur":["Saptagiri Hotel","RGB Residency","Lotus Grand"],
+"Amaravati":["Apex Hotel","Amaravati Haritha","Ankur Residency"],
+"Lepakshi":["Haritha Hotel","Lepakshi Resort","Temple Lodge"],
+"Belum Caves":["Haritha Hotel","Belum Stay","Nature Camp"],
+"Srisailam":["Haritha Srisailam","Grand Akka Mahadevi","Temple Cottage"],
+"Papikondalu":["River View Resort","Houseboat Stay","Forest Resort"],
+"Borra Caves":["Haritha Resort","Nature Camp","Araku Resort"],
+"Machilipatnam":["Hotel Abhiram","Park Regency","Seaside Resort"],
+"Kakinada":["Grand Kakinada","Royal Park","GRT Hotels"],
+"Chittoor":["Haritha Chittoor","PSR Hotel","Relax Inn"],
+"Vizianagaram":["Ritz Comfort","Haritha","Royal Palace"],
+"Bapatla":["Sea Breeze Resort","Suryalanka Haritha","Beach Cottage"],
+"Ahobilam":["Haritha Ahobilam","Temple Stay","Forest Lodge"],
+"Gandikota":["Gandikota Haritha","Adventure Camp","Grand Canyon Resort"],
+"Pulicat":["Lake View Cottage","Haritha Pulicat","Fisherman Stay"],
+"Bhadrachalam":["Haritha Hotel","Sri Rama Residency","Godavari River View"]
+};
+
+
+/* -------------------------------
+   YOUR ORIGINAL DATA (unchanged)
+-------------------------------- */
+let currentVoiceText = "";
+const data = { 
+    "Tirupati":{
+ image:"Tirupati.jpg",
+ map:"https://www.google.com/maps?q=tirupati&output=embed",
+ food_en:"Pulihora, Laddu, Curd Rice",
+ food_te:"పులిహోర, లడ్డు, పెరుగు అన్నం",
+ culture_en:"Spiritual and temple culture",
+ culture_te:"ఆధ్యాత్మిక, ఆలయ సంస్కృతి",
+ trip:{
+  1:["Tirumala Temple","Sri Venkateswara Zoo"],
+  2:["Chandragiri Fort","Talakona Waterfalls"],
+  3:["Kapila Theertham","Silathoranam"]
+ }
+},
+"Vijayawada":{
+ image:"Vijayawada.jpg",
+ map:"https://www.google.com/maps?q=vijayawada&output=embed",
+ food_en:"Punugulu, Andhra Meals, Mirchi Bajji",
+ food_te:"పునుగులు, ఆంధ్ర భోజనం, మిరపకాయ బజ్జీ",
+ culture_en:"Kanaka Durga festival and river rituals",
+ culture_te:"కనక దుర్గ పండుగలు, నది సంస్కృతి",
+ trip:{
+  1:["Kanaka Durga Temple","Prakasam Barrage","Bhavani Island","Gandhi Hill"],
+  2:["Undavalli Caves","Kondapalli Fort","Amaravati","ISKCON Temple"],
+  3:["Mangalgiri","Kolleru Lake","Kuchipudi Village","Divisima","Uppaluru Sanctuary"]
+ }
+},
+
+"Visakhapatnam":{
+ image:"Visakhapatnam.jpg",
+ map:"https://www.google.com/maps?q=visakhapatnam&output=embed",
+ food_en:"Fish Curry, Prawn Fry, Bongulo Chicken",
+ food_te:"చేప కర్రీ, రొయ్యల వేపుడు, బోంగులో చికెన్",
+ culture_en:"Beach lifestyle and tribal influence",
+ culture_te:"బీచ్ జీవనశైలి, గిరిజన ప్రభావం",
+ trip:{
+  1:["RK Beach","Kailasagiri","Submarine Museum","Tenneti Park","Visakha Museum"],
+  2:["Yarada Beach","Simhachalam Temple","Indira Gandhi Zoo","VUDA Park"],
+  3:["Araku Valley","Borra Caves","Katiki Waterfalls","Ananthagiri Hills"]
+ }
+},
+
+"Araku":{
+ image:"Araku.jpg",
+ map:"https://www.google.com/maps?q=araku&output=embed",
+ food_en:"Bamboo Chicken, Tribal Dishes, Coffee",
+ food_te:"బాంబూ చికెన్, గిరిజన వంటకాలు, కాఫీ",
+ culture_en:"Tribal dances and crafts",
+ culture_te:"గిరిజన నృత్యాలు, హస్తకళలు",
+ trip:{
+  1:["Coffee Museum","Tribal Museum","Padmapuram Gardens","View Points"],
+  2:["Borra Caves","Chaparai","Katiki Waterfalls","Dumbriguda"],
+  3:["Ananthagiri Hills","Galikonda View","Tadimada Waterfall","Kolab Dam"]
+ }
+},
+
+"Guntur":{
+ image:"Guntur.jpg",
+ map:"https://www.google.com/maps?q=guntur&output=embed",
+ food_en:"Gongura Curry, Chilli Chicken, Bajji",
+ food_te:"గొంగూర కర్రీ, చికెన్, బజ్జీ",
+ culture_en:"Temple and spice market culture",
+ culture_te:"మిరప మార్కెట్ + ఆలయ సంస్కృతి",
+ trip:{
+  1:["Amaravati Stupa","Kotappakonda","Sri Panakala Lakshmi"],
+  2:["Uppalapadu Sanctuary","Macherla","Nagarjuna Sagar"],
+  3:["Ethipothala Falls","Kolleru Lake","Chilakaluripeta"]
+ }
+},
+
+"Kurnool":{
+ image:"kurnool.jpg",
+ map:"https://www.google.com/maps?q=kurnool&output=embed",
+ food_en:"Rayalaseema Chicken, Ragi Sangati, Curry",
+ food_te:"రాయలసీమ చికెన్, రాగి సంగటి, కూర",
+ culture_en:"Strong Rayalaseema traditions",
+ culture_te:"రాయలసీమ సంప్రదాయం",
+ trip:{
+  1:["Konda Reddy Fort","Orvakal Garden","Ahobilam"],
+  2:["Belum Caves","Yaganti","Mahanandi"],
+  3:["Gandikota","Srisailam","Rollapadu"]
+ }
+},
+
+"Rajahmundry":{
+ image:"Rajahmundry.jpg",
+ map:"https://www.google.com/maps?q=rajahmundry&output=embed",
+ food_en:"Fish Curry, Prawns, Pulihora",
+ food_te:"చేప కర్రీ, రొయ్యలు, పులిహోర",
+ culture_en:"Godavari river ghats and literature",
+ culture_te:"గోదావరి నది సంస్కృతి",
+ trip:{
+  1:["Godavari Bridge","Pushkar Ghat","ISKCON"],
+  2:["Papi Hills Boat Ride","Dowleswaram","Kadiyam Nurseries"],
+  3:["Maredumilli","Rampachodavaram","Kolleru"]
+ }
+},
+
+"Srikakulam":{
+ image:"Srikakulam.jpg",
+ map:"https://www.google.com/maps?q=srikakulam&output=embed",
+ food_en:"Sweet Pongal, Fish Fry, Curd Rice",
+ food_te:"తీయని పొంగలి, చేప వేపుడు, పెరుగు అన్నం",
+ culture_en:"Village traditions and folk dance",
+ culture_te:"గ్రామీణ సంస్కృతి",
+ trip:{
+  1:["Srikurmam Temple","Baruva Beach"],
+  2:["Salihundam","Nagavali River"],
+  3:["Arasavelli","Telineelapuram"]
+ }
+},
+
+"Nellore":{
+ image:"Nellore.jpg",
+ map:"https://www.google.com/maps?q=nellore&output=embed",
+ food_en:"Fish Pulusu, Prawn, Dosa",
+ food_te:"చేప పులుసు, రొయ్యలు, దోస",
+ culture_en:"Rice farming and coastal culture",
+ culture_te:"వ్యవసాయం + తీర సంస్కృతి",
+ trip:{
+  1:["Ranganayaka Temple","Venkatagiri"],
+  2:["Pulicat Lake","Nelapattu"],
+  3:["Udayagiri Fort","Mypadu Beach"]
+ }
+},
+
+"Kadapa":{
+ image:"kadapa.jpg",
+ map:"https://www.google.com/maps?q=kadapa&output=embed",
+ food_en:"Ragi Mudda, Natu Kodi, Dal",
+ food_te:"రాగి ముద్ద, నాటుకోడి, పప్పు",
+ culture_en:"Rayalaseema traditions",
+ culture_te:"రాయలసీమ సంప్రదాయం",
+ trip:{
+  1:["Gandikota","Ameen Peer"],
+  2:["Vontimitta","Mylavaram Dam"],
+  3:["Brahmamgari Matham","Talakona"]
+ }
+},
+
+"Anantapur":{
+ image:"ananthapur.jpg",
+ map:"https://www.google.com/maps?q=anantapur&output=embed",
+ food_en:"Groundnut Laddoos, Millet Food, Pakodi",
+ food_te:"వేరుశెనగ లడ్డూ, చిరుధాన్యం, పకోడీ",
+ culture_en:"Dry land farming culture",
+ culture_te:"ఎండ ప్రాంత వ్యవసాయం",
+ trip:{
+  1:["ISKCON Temple","Penukonda Fort"],
+  2:["Lepakshi Temple","Gooty Fort"],
+  3:["Nandavaram Fort","Ahobilam"]
+ }
+},
+"Amaravati":{
+ image:"Amaravati.jpg",
+ map:"https://www.google.com/maps?q=amaravati&output=embed",
+ food_en:"Dal Rice, Vada, Payasam",
+ food_te:"పప్పు అన్నం, వడ, పాయసం",
+ culture_en:"Buddhist heritage",
+ culture_te:"బౌద్ధ చరిత్ర",
+ trip:{
+  1:["Amaralingeswara Temple"],
+  2:["Stupa Museum"],
+  3:["Krishna River"]
+ }
+},
+"Lepakshi":{
+ image:"Lepakshi.jpg",
+ map:"https://www.google.com/maps?q=lepakshi&output=embed",
+ food_en:"Pulihora, Dosa, Laddoos",
+ food_te:"పులిహోర, దోస, లడ్డూ",
+ culture_en:"Vijayanagara art",
+ culture_te:"విజయనగర కళ",
+ trip:{
+  1:["Veerabhadra Temple"],
+  2:["Hanging Pillar"],
+  3:["Nandi Statue"]
+ }
+},
+"Belum Caves":{
+ image:"Belum.jpg",
+ map:"https://www.google.com/maps?q=belum+caves&output=embed",
+ food_en:"Snacks, Lemon Rice",
+ food_te:"స్నాక్స్, నిమ్మ అన్నం",
+ culture_en:"Geological heritage",
+ culture_te:"భౌగోళిక వారసత్వం",
+ trip:{
+  1:["Belum Entrance","Meditation Hall"],
+  2:["Kolimigundla","Yaganti"],
+  3:["Kurnool","Orvakal"]
+ }
+},
+"Srisailam":{
+ image:"Srisailam.jpg",
+ map:"https://www.google.com/maps?q=srisailam&output=embed",
+ food_en:"Khichdi, Pulihora, Curd Rice",
+ food_te:"ఖిచ్డీ, పులిహోర, పెరుగు అన్నం",
+ culture_en:"Jyotirlinga pilgrimage",
+ culture_te:"జ్యోతిర్లింగ యాత్ర",
+ trip:{
+  1:["Mallikarjuna Temple"],
+  2:["Srisailam Dam"],
+  3:["Pathala Ganga"]
+ }
+},
+"Papikondalu":{
+ image:"Papikondalu.jpg",
+ map:"https://www.google.com/maps?q=papikondalu&output=embed",
+ food_en:"Bamboo Chicken, Fish Curry",
+ food_te:"బాంబూ చికెన్, చేప కర్రీ",
+ culture_en:"Tribal river life",
+ culture_te:"అడవి గిరిజన జీవనం",
+ trip:{
+  1:["Boat Tour"],
+  2:["Camping Site"],
+  3:["Natural Trek"]
+ }
+},
+"Borra Caves":{
+  image:"Borra.jpg",
+  map:"https://www.google.com/maps?q=borra+caves&output=embed",
+  food_en:"Bamboo Chicken, Millets Roti, Tea",
+  food_te:"బాంబూ చికెన్, మిల్లెట్ రోటీ, టీ",
+  culture_en:"Tribal culture and nature-based lifestyle",
+  culture_te:"గిరిజన సంస్కృతి మరియు ప్రకృతి ఆధారిత జీవితం",
+  trip:{
+    1:["Borra Caves","Ananthagiri Hills","Katiki Waterfalls"],
+    2:["Tyda Nature Camp","Coffee Plantations","View Points"],
+    3:["Araku Valley","Tribal Museum","Padmapuram Gardens"]
+  }
+},
+"Machilipatnam":{
+ image:"Machilipatnam.jpg",
+ map:"https://www.google.com/maps?q=machilipatnam&output=embed",
+ food_en:"Fish Fry, Crab Curry, Coconut Rice",
+ food_te:"చేపల వేపుడు, పీత కర్రీ, కొబ్బరి అన్నం",
+ culture_en:"Port and handloom culture",
+ culture_te:"నౌకాశ్రయం సంస్కృతి",
+ trip:{
+  1:["Manginapudi Beach"],
+  2:["Bandar Fort"],
+  3:["Pedana Kalamkari"]
+ }
+},
+"Kakinada":{
+  image:"kakinada.jpg",
+  map:"https://www.google.com/maps?q=kakinada&output=embed",
+  food_en:"Kakinada Kaja, Seafood, Punugulu",
+  food_te:"కాకినాడ కాజా, సముద్ర ఆహారం, పునుగులు",
+  culture_en:"Coastal traditions and festival culture",
+  culture_te:"సముద్ర తీర సంప్రదాయాలు మరియు పండుగల సంస్కృతి",
+  trip:{
+    1:["Kakinada Beach","Hope Island","Uppada Beach"],
+    2:["Coringa Wildlife Sanctuary","Boat Ride","Mangrove Forest"],
+    3:["Draksharamam Temple","Annavaram Temple","Local Markets"]
+  }
+},
+"Chittoor":{
+ image:"Chittoor.jpg",
+ map:"https://www.google.com/maps?q=chittoor&output=embed",
+ food_en:"Curd Rice, Tomato Dal, Idli",
+ food_te:"పెరుగు అన్నం, టమాట పప్పు, ఇడ్లీ",
+ culture_en:"Border Andhra culture",
+ culture_te:"సరిహద్దు సంస్కృతి",
+ trip:{
+  1:["Horsley Hills"],
+  2:["Kanipakam Temple"],
+  3:["Talakona"]
+ }
+},
+"Vizianagaram":{
+  image:"Vizianagaram.jpg",
+  map:"https://www.google.com/maps?q=vizianagaram&output=embed",
+  food_en:"Pootharekulu, Dosa, Sambar",
+  food_te:"పూతరేకులు, దోస, సాంబార్",
+  culture_en:"Folk arts and royal heritage",
+  culture_te:"జానపద కళలు మరియు రాజవంశ వారసత్వం",
+  trip:{
+    1:["Vizianagaram Fort","Ramanarayanam Gardens","Korukonda Temple"],
+    2:["Thatipudi Reservoir","Gantyada","Ramabhadrapuram"],
+    3:["Bobbili Fort","Cheepurupalli","Local Markets"]
+  }
+},
+
+"Bapatla":{
+  image:"Bapatla.jpg",
+  map:"https://www.google.com/maps?q=bapatla&output=embed",
+  food_en:"Seafood, Prawn Curry, Andhra Meals",
+  food_te:"సముద్ర ఆహారం, రొయ్యల కూర, ఆంధ్ర భోజనం",
+  culture_en:"Coastal town life and temple traditions",
+  culture_te:"సముద్ర తీర జీవనం మరియు ఆలయ సంప్రదాయాలు",
+  trip:{
+    1:["Bapatla Beach","Bhavanarayana Swamy Temple","Suryalanka Road"],
+    2:["Suryalanka Beach","Nizampatnam Port","Boat Ride"],
+    3:["Uppugunduru","Challapalli","Local Fish Market"]
+  }
+},
+
+"Ahobilam":{
+  image:"Ahobilam.jpg",
+  map:"https://www.google.com/maps?q=ahobilam&output=embed",
+  food_en:"Temple Prasadam, Pulihora, Curd Rice",
+  food_te:"ఆలయ ప్రసాదం, పులిహోర, పెరుగు అన్నం",
+  culture_en:"Spiritual pilgrimage and forest traditions",
+  culture_te:"ఆధ్యాత్మిక యాత్రలు మరియు అరణ్య సంస్కృతి",
+  trip:{
+    1:["Lower Ahobilam Temple","Prahlada Varada Temple","Temple Streets"],
+    2:["Upper Ahobilam","Garuda Kolla","Ugra Stambham"],
+    3:["Trekking Paths","Forest View Points","Local Ashrams"]
+  }
+},
+
+"Gandikota":{
+ image:"Gandikota.jpg",
+ map:"https://www.google.com/maps?q=gandikota&output=embed",
+ food_en:"Ragi Sangati, Chicken Curry, Pickle",
+ food_te:"రాగి సంగటి, చికెన్ కర్రీ, ఊరగాయ",
+ culture_en:"Grand Canyon of India",
+ culture_te:"భారత గ్రాండ్ కేన్యాన్",
+ trip:{
+  1:["Gandikota Fort"],
+  2:["Pennar River"],
+  3:["Sunset View Point"]
+ }
+},
+"Pulicat":{
+  image:"Pulicat.jpg",
+  map:"https://www.google.com/maps?q=pulicat+lake&output=embed",
+  food_en:"Fish Curry, Crab Fry, Rice & Curry",
+  food_te:"చేపల కూర, పీతల వేపుడు, అన్నం & కూర",
+  culture_en:"Fishing community life and bird-watching heritage",
+  culture_te:"మత్స్యకారుల జీవితం మరియు పక్షి వీక్షణ సంస్కృతి",
+  trip:{
+    1:["Pulicat Lake","Dutch Cemetery","Local Fishing Villages"],
+    2:["Bird Sanctuary","Boat Ride in Lake","Sri Panchalingeshwara Temple"],
+    3:["Beach View","Sunset Point","Nellore Border Villages"]
+  }
+},
+"Bhadrachalam":{
+ image:"bhadrachalam.jpg",
+ map:"https://www.google.com/maps?q=bhadrachalam&output=embed",
+ food_en:"Pulihora, Bobbatlu, Sweets",
+ food_te:"పులిహోర, బొబ్బట్లు, తీపి",
+ culture_en:"Ram bhakti culture",
+ culture_te:"రామ భక్తి",
+ trip:{
+  1:["Sitaramachandra Temple"],
+  2:["Godavari Boat Ride"],
+  3:["Papikondalu"]
+ }
+},
+};
+/*LOGIN + REGISTER SYSTEM  */
+function openLogin(){
+  loginBox.style.display="block";
+  registerBox.style.display="none";
+}
+
+function openRegister(){
+  loginBox.style.display="none";
+  registerBox.style.display="block";
+}
+
+function registerUser(){
+  let email = regEmail.value;
+  let pass = regPass.value;
+
+  if(!email || !pass){ alert("Enter all details"); return; }
+
+  if(localStorage.getItem(email)){
+    alert("User already exists!");
+    return;
+  }
+
+  localStorage.setItem(email, pass);
+  alert("Registration Successful!");
+  openLogin();
+}
+
+function loginUser(){
+  let email = loginEmail.value;
+  let pass = loginPass.value;
+
+  if(localStorage.getItem(email) == pass){
+    localStorage.setItem("currentUser", email);
+    loginBox.style.display="none";
+    app.style.display="block";
+  }
+  else{
+    alert("Invalid Email or Password!");
+  }
+}
+
+function logout(){
+  localStorage.removeItem("currentUser");
+  app.style.display="none";
+  openLogin();
+}
+
+function switchUser(){
+  logout();
+}
+
+/* AUTO CHECK LOGIN */
+if(localStorage.getItem("currentUser")){
+  app.style.display="block";
+} else {
+  openLogin();
+}
+
+
+
+/* SHOW DETAILS + HOTELS */
+function showDetails(){
+  const city = citySelect.value;
+
+  if(!data[city]) return;
+
+  placeImage.src = data[city].image;
+  map.src = data[city].map;
+
+  currentVoiceText = city + " is famous for " + data[city].food_en;
+
+  info.innerHTML = `
+    <h2>${city}</h2>
+    <h3>🍽 Food</h3>${data[city].food_en}<br><b>${data[city].food_te}</b>
+    <h3>🎭 Culture</h3>${data[city].culture_en}<br><b>${data[city].culture_te}</b>
+  `;
+
+  /* ⭐ HOTEL LIST */
+  let h = "<h2>🏨 Best Hotels</h2><ul>";
+  hotels[city].forEach(hotel => h += `<li>✔ ${hotel}</li>`);
+  h += "</ul>";
+  hotelBox.innerHTML = h;
+}
+
+/* Your voice + plan functions unchanged */
+/* VOICE */
+function speakInfo(lang){
+ let msg = new SpeechSynthesisUtterance();
+ msg.text = (lang=="te") ? 
+        document.querySelector("#info b").innerText :
+        currentVoiceText;
+ msg.lang = (lang=="te") ? "te-IN" : "en-US";
+ speechSynthesis.speak(msg);
+}
+
+function stopVoice(){ speechSynthesis.cancel(); }
+
+/* TRIP PLAN */
+function showPlan(day){
+  const city = citySelect.value;
+  if(!data[city]){ planResult.innerHTML="Select a city first"; return;}
+
+  let places = data[city].trip[day];
+  let html=`<h3>${day} Day Trip Plan - ${city}</h3><ul>`;
+  places.forEach(p=> html+=`<li>📍 ${p}</li>`);
+  html += "</ul>";
+
+  planResult.innerHTML = html;
+}
+
+
+
+</script>
+</body>
+</html>
